@@ -39,6 +39,28 @@ def num_regions(mask):
     return num_regions
 
 
+def min_region(mask):
+    """
+    compute the volume of the smallest region from an input mask
+    """
+    regions, num_regions = label(as_logical(mask))
+    labels = np.arange(1, num_regions+1)
+    mask = as_logical(mask)
+    return np.min(lc(mask, regions, labels, np.sum, int, 0)) \
+        if num_regions > 0 else 0
+
+
+def max_region(mask):
+    """
+    compute the volume of the biggest region from an input mask
+    """
+    regions, num_regions = label(as_logical(mask))
+    labels = np.arange(1, num_regions+1)
+    mask = as_logical(mask)
+    return np.max(lc(mask, regions, labels, np.sum, int, 0)) \
+        if num_regions > 0 else 0
+
+
 def num_voxels(mask):
     """
     compute the number of voxels from an input mask
@@ -158,8 +180,8 @@ def FPF_seg(gt, mask):
     Compute the False positive fraction between an input mask and a ground
     truth mask
     """
-    b = num_voxels(mask)
-    fpf = 100.0 * false_positive_seg(gt, mask) / b if b > 0 else 0
+    b = float(num_voxels(mask))
+    fpf = false_positive_seg(gt, mask) / b if b > 0 else 0
 
     return fpf
 
@@ -340,3 +362,42 @@ def MHD(gt, mask, spacing):
     """
     distances = mask_distance(gt, mask, spacing)
     return np.max([np.mean(distances[0]), np.mean(distances[1])])
+
+
+def get_evaluations(gt, mask, spacing=(1, 1, 1)):
+    """
+    Helper function to compute all the evaluation metrics:
+
+    - Segmentation volume, number of regions, min and max vol for each region
+    - TPF (segmentation and detection)
+    - FPF (segmentation and detection)
+    - DSC (segmentation and detection)
+    - PPV (segmentation and detection)
+    - Volume difference
+    - Haursdoff distance (standard and modified)
+    - Custom f-score
+    """
+
+    metrics = {}
+    metrics['vol_mask'] = num_voxels(mask)
+    metrics['vol_gt'] = num_voxels(gt)
+    metrics['regions_mask'] = num_regions(mask)
+    metrics['regions_gt'] = num_regions(gt)
+    metrics['min_region_mask'] = min_region(mask)
+    metrics['max_region_mask'] = max_region(mask)
+    metrics['min_region_gt'] = min_region(gt)
+    metrics['max_region_gt'] = max_region(gt)
+    metrics['tpf_seg'] = TPF_seg(gt, mask)
+    metrics['tpf_det'] = TPF_det(gt, mask)
+    metrics['fpf_seg'] = FPF_seg(gt, mask)
+    metrics['fpf_det'] = FPF_det(gt, mask)
+    metrics['dsc_seg'] = DSC_seg(gt, mask)
+    metrics['dsc_det'] = DSC_det(gt, mask)
+    metrics['ppv_seg'] = PPV_seg(gt, mask)
+    metrics['ppv_det'] = PPV_det(gt, mask)
+    metrics['vd'] = PVE(gt, mask)
+    metrics['hd'] = HD(gt, mask, spacing)
+    metrics['mhd'] = MHD(gt, mask, spacing)
+    metrics['f_score'] = f_score(gt, mask)
+
+    return metrics
