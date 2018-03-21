@@ -5,6 +5,8 @@
 # Sergi Valverde 2018
 # svalverde@eia.udg.edu
 #
+# In all functions, mask and gt (ground truth ) are 3D
+# np.ndarrays.
 # -------------------------------------------------------
 
 import numpy as np
@@ -17,16 +19,31 @@ from sklearn.neighbors import NearestNeighbors
 def regionprops(mask):
     """
     Get region properties
+
+    Inputs:
+    - mask: 3D np.ndarray, input MRI mask
+
+    Output:
+    - regions: 3D np.ndarray, labeled version of the input mask array
+      where each region is labeled with a unique label
+    - labels: list of unique labels
+    - volumes: list with region volumes
     """
     regions, num_regions = label(as_logical(mask))
     labels = np.arange(1, num_regions+1)
-    areas = lc(regions > 0, regions, labels, np.sum, int, 0)
-    return regions, labels, areas
+    volumes = lc(regions > 0, regions, labels, np.sum, int, 0)
+    return regions, labels, volumes
 
 
 def as_logical(mask):
     """
     convert to Boolean
+
+    Inputs:
+    - mask: 3D np.ndarray, input MRI mask
+
+    Output:
+    - Same mask binarized
     """
     return np.array(mask).astype(dtype=np.bool)
 
@@ -34,6 +51,12 @@ def as_logical(mask):
 def num_regions(mask):
     """
     compute the number of regions from an input mask
+
+    Inputs:
+    - mask: 3D np.ndarray, input MRI mask
+
+    Output:
+    - num_regions: (int) number of candidate regions
     """
     regions, num_regions = label(as_logical(mask))
     return num_regions
@@ -42,6 +65,12 @@ def num_regions(mask):
 def min_region(mask):
     """
     compute the volume of the smallest region from an input mask
+
+    Inputs:
+    - mask: 3D np.ndarray, input MRI mask
+
+    Output:
+    - min_region: (int) the size of the minimum region volume.
     """
     regions, num_regions = label(as_logical(mask))
     labels = np.arange(1, num_regions+1)
@@ -53,6 +82,13 @@ def min_region(mask):
 def max_region(mask):
     """
     compute the volume of the biggest region from an input mask
+
+    Inputs:
+    - mask: 3D np.ndarray, input MRI mask
+
+    Output:
+    - max_region: (int) the size of the maximum region volume.
+
     """
     regions, num_regions = label(as_logical(mask))
     labels = np.arange(1, num_regions+1)
@@ -64,6 +100,13 @@ def max_region(mask):
 def num_voxels(mask):
     """
     compute the number of voxels from an input mask
+
+    Inputs:
+    - mask: 3D np.ndarray, input MRI mask
+
+    Output:
+    - region volumen: (int) volume of the input mask (in voxels)
+
     """
     return np.sum(as_logical(mask))
 
@@ -72,6 +115,13 @@ def true_positive_seg(gt, mask):
     """
     compute the number of true positive voxels between a input mask an
     a ground truth (GT) mask
+
+    Inputs:
+    - gt: 3D np.ndarray, reference image (ground truth)
+    - mask: 3D np.ndarray, input MRI mask
+
+    Output:
+    - (int) number of true positive voxels between the input and gt mask
     """
     a = as_logical(gt)
     b = as_logical(mask)
@@ -83,6 +133,14 @@ def true_positive_det(gt, mask):
     """
     compute the number of positive regions between a input mask an
     a ground truth (GT) mask
+
+    Inputs:
+    - gt: 3D np.ndarray, reference image (ground truth)
+    - mask: 3D np.ndarray, input MRI mask
+
+    Output:
+    - (int) number of true positive regions between the input and gt mask
+
     """
     regions, num_regions = label(as_logical(gt))
     labels = np.arange(1, num_regions+1)
@@ -95,6 +153,14 @@ def true_positive_det(gt, mask):
 def false_negative_seg(gt, mask):
     """
     compute the number of false negative voxels
+
+    Inputs:
+    - gt: 3D np.ndarray, reference image (ground truth)
+    - mask: 3D np.ndarray, input MRI mask
+
+    Output:
+    - (int) number of false negative voxels between the input and gt mask
+
     """
     a = as_logical(gt)
     b = as_logical(mask)
@@ -106,6 +172,14 @@ def false_negative_det(gt, mask):
     """
     compute the number of false negative regions between a input mask an
     a ground truth (GT) mask
+
+    Inputs:
+    - gt: 3D np.ndarray, reference image (ground truth)
+    - mask: 3D np.ndarray, input MRI mask
+
+    Output:
+    - (int) number of false negative regions between the input and gt mask
+
     """
     regions, num_regions = label(as_logical(gt))
     labels = np.arange(1, num_regions+1)
@@ -119,6 +193,14 @@ def false_positive_seg(gt, mask):
     """
     compute the number of false positive voxels between a input mask an
     a ground truth (GT) mask
+
+    Inputs:
+    - gt: 3D np.ndarray, reference image (ground truth)
+    - mask: 3D np.ndarray, input MRI mask
+
+    Output:
+    - (int) number of false positive voxels between the input and gt mask
+
     """
     a = as_logical(gt)
     b = as_logical(mask)
@@ -130,9 +212,16 @@ def false_positive_det(gt, mask):
     """
     compute the number of false positive regions between a input mask an
     a ground truth (GT) mask
+
+    Inputs:
+    - gt: 3D np.ndarray, reference image (ground truth)
+    - mask: 3D np.ndarray, input MRI mask
+
+    Output:
+    - (int) number of false positive regions between the input and gt mask
+
     """
     regions, num_regions = label(as_logical(mask))
-
     labels = np.arange(1, num_regions+1)
     gt = as_logical(gt)
 
@@ -144,6 +233,14 @@ def true_negative_seg(gt, mask):
     """
     compute the number of true negative samples between an input mask and
     a ground truth mask
+
+    Inputs:
+    - gt: 3D np.ndarray, reference image (ground truth)
+    - mask: 3D np.ndarray, input MRI mask
+
+    Output:
+    - (int) number of true negative voxels between the input and gt mask
+
     """
     a = as_logical(gt)
     b = as_logical(mask)
@@ -156,6 +253,14 @@ def TPF_seg(gt, mask):
     """
     compute the True Positive Fraction (Sensitivity) between an input mask and
     a ground truth mask
+
+    Inputs:
+    - gt: 3D np.ndarray, reference image (ground truth)
+    - mask: 3D np.ndarray, input MRI mask
+
+    Output:
+    - (float) Voxelwise true positive fraction between the input and gt mask
+
     """
     TP = true_positive_seg(gt, mask)
     GT_voxels = np.sum(as_logical(gt)) if np.sum(as_logical(gt)) > 0 else 0
@@ -167,6 +272,14 @@ def TPF_det(gt, mask):
     """
     Compute the TPF (sensitivity) detecting candidate regions between an
     input mask and a ground truth mask
+
+    Inputs:
+    - gt: 3D np.ndarray, reference image (ground truth)
+    - mask: 3D np.ndarray, input MRI mask
+
+    Output:
+    - (float) Regionwise true positive fraction between the input and gt mask
+
     """
 
     TP = true_positive_det(gt, mask)
@@ -179,6 +292,14 @@ def FPF_seg(gt, mask):
     """
     Compute the False positive fraction between an input mask and a ground
     truth mask
+
+    Inputs:
+    - gt: 3D np.ndarray, reference image (ground truth)
+    - mask: 3D np.ndarray, input MRI mask
+
+    Output:
+    - (float) Voxelwise false positive fraction between the input and gt mask
+
     """
     b = float(num_voxels(mask))
     fpf = false_positive_seg(gt, mask) / b if b > 0 else 0
@@ -190,6 +311,14 @@ def FPF_det(gt, mask):
     """
     Compute the FPF detecting candidate regions between an
     input mask and a ground truth mask
+
+    Inputs:
+    - gt: 3D np.ndarray, reference image (ground truth)
+    - mask: 3D np.ndarray, input MRI mask
+
+    Output:
+    - (float) Regionwise false positive fraction between the input and gt mask
+
     """
 
     FP = false_positive_det(gt, mask)
@@ -201,7 +330,15 @@ def FPF_det(gt, mask):
 def DSC_seg(gt, mask):
     """
     Compute the Dice (DSC) coefficient betweeen an input mask and a ground
-    truth mask
+    truth mask. The DSC score is equal to the f1-score.
+
+    Inputs:
+    - gt: 3D np.ndarray, reference image (ground truth)
+    - mask: 3D np.ndarray, input MRI mask
+
+    Output:
+    - (float) Voxelwise Dice coefficient between the input and gt mask
+
     """
     A = num_voxels(gt)
     B = num_voxels(mask)
@@ -213,7 +350,15 @@ def DSC_seg(gt, mask):
 def AOV_seg(gt, mask):
     """
     Compute the Area Overlap coefficient betweeen an input mask and a ground
-    truth mask == TPF
+    truth mask == TPF. This is equivalent to the TPF fraction score.
+
+    Inputs:
+    - gt: 3D np.ndarray, reference image (ground truth)
+    - mask: 3D np.ndarray, input MRI mask
+
+    Output:
+    - (float) Area overlap fraction between the input and gt mask
+
     """
     a = np.sum(np.logical_and(as_logical(gt), as_logical(mask)))
     b = num_voxels(as_logical(gt))
@@ -225,6 +370,14 @@ def DSC_det(gt, mask):
     """
     Compute the Dice (DSC) coefficient betweeen an input mask and a ground
     truth mask
+
+    Inputs:
+    - gt: 3D np.ndarray, reference image (ground truth)
+    - mask: 3D np.ndarray, input MRI mask
+
+    Output:
+    - (float) Regionwise Dice coefficient between the input and gt mask
+
     """
     A = num_regions(gt)
     B = num_regions(mask)
@@ -238,7 +391,15 @@ def PVE(gt, mask, type='absolute'):
     Compute the volume difference error betweeen an input mask and a ground
     truth mask
 
-    type parameter controls if the error is relative or absolute
+    Inputs:
+    - gt: 3D np.ndarray, reference image (ground truth)
+    - mask: 3D np.ndarray, input MRI mask
+    - type: controls if the error is relative or absolute (def: absolute)
+
+    Output:
+    - (float) relative / absolute difference in volume  between the input
+       and gt mask
+
     """
     A = num_voxels(gt)
     B = num_voxels(mask)
@@ -255,6 +416,14 @@ def PPV_det(gt, mask):
     """
     Compute the positive predictive value (recall) for the detected
     regions between an input mask and a ground truth mask
+
+    Inputs:
+    - gt: 3D np.ndarray, reference image (ground truth)
+    - mask: 3D np.ndarray, input MRI mask
+
+    Output:
+    - (float) Regionwise PPV coefficient between the input and gt mask
+
     """
 
     a = TPF_det(gt, mask)
@@ -267,6 +436,14 @@ def PPV_seg(gt, mask):
     """
     Compute the positive predictive value (recall) for the detected
     regions between an input mask and a ground truth mask
+
+    Inputs:
+    - gt: 3D np.ndarray, reference image (ground truth)
+    - mask: 3D np.ndarray, input MRI mask
+
+    Output:
+    - (float) Voxelwise PPV coefficient between the input and gt mask
+
     """
     a = TPF_seg(gt, mask)
     b = TPF_seg(gt, mask) + FPF_seg(gt, mask)
@@ -276,9 +453,20 @@ def PPV_seg(gt, mask):
 
 def f_score(gt, mask):
     """
-    Compute a custom score between an input mask and a ground truth mask
+    Compute a custom score between an input mask and a ground truth mask:
 
     F = 3 * DSC_s + TPF_d + (1- FPF) / DSC_s +TPF_d + (1-FPF)
+
+    This score can be useful to optimize the best hyper-parameters based on
+    different evaluation scores.
+
+    Inputs:
+    - gt: 3D np.ndarray, reference image (ground truth)
+    - mask: 3D np.ndarray, input MRI mask
+
+    Output:
+    - (float) Custom f-score
+
     """
 
     a = 3.0 * DSC_seg(gt, mask) * TPF_det(gt, mask) * (1 - FPF_seg(gt, mask))
@@ -289,7 +477,15 @@ def f_score(gt, mask):
 
 def eucl_distance(a, b):
     """
-    Euclidian distance between a and b
+    Euclidian distance between Region a and b
+
+    Inputs:
+    - a: 3D np.ndarray
+    - b: 3D np.ndarray
+
+    Output:
+    - (float) Euclidian distances between A and B
+
     """
     nbrs_a = NearestNeighbors(n_neighbors=1,
                               algorithm='kd_tree').fit(a) if a.size > 0 else None
@@ -301,12 +497,19 @@ def eucl_distance(a, b):
     return [distances_a, distances_b]
 
 
-def surface_distance(gt, mask, spacing=list((1, 1, 3))):
+def surface_distance(gt, mask, spacing=list((1, 1, 1))):
     """
     Compute the surface distance between the input mask and a
     ground truth mask
 
-    - spacing: sets the input resolution
+    Inputs:
+    - gt: 3D np.ndarray, reference image (ground truth)
+    - mask: 3D np.ndarray, input MRI mask
+    - spacing: sets the input resolution (def: (1, 1, 1))
+
+    Output:
+    - (float) Euclidian distance between gt and mask
+
     """
     a = as_logical(gt)
     b = as_logical(mask)
@@ -317,12 +520,19 @@ def surface_distance(gt, mask, spacing=list((1, 1, 3))):
     return eucl_distance(a_bound, b_bound)
 
 
-def mask_distance(gt, mask, spacing=list((1, 1, 3))):
+def mask_distance(gt, mask, spacing=list((1, 1, 1))):
     """
     Compute the mask distance between the input mask and the
     ground truth mask
 
-    - spacing: sets the input resolution
+    Inputs:
+    - gt: 3D np.ndarray, reference image (ground truth)
+    - mask: 3D np.ndarray, input MRI mask
+    - spacing: sets the input resolution (def: (1, 1, 1))
+
+    Output:
+    - (float) mask distance between gt and mask
+
     """
     a = as_logical(gt)
     b = as_logical(mask)
@@ -331,10 +541,18 @@ def mask_distance(gt, mask, spacing=list((1, 1, 3))):
     return eucl_distance(a_full, b_full)
 
 
-def ASD(gt, mask, spacing):
+def ASD(gt, mask, spacing=(1, 1, 1)):
     """
-    Compute the average_surface_distance between an input mask and a
+    Compute the average_surface_distance (ASD) between an input mask and a
     ground truth mask
+
+    Inputs:
+    - gt: 3D np.ndarray, reference image (ground truth)
+    - mask: 3D np.ndarray, input MRI mask
+    - spacing: sets the input resolution (def: (1, 1, 1))
+
+    Output:
+    - (float) Average surface distance between gt and mask
 
     - spacing: sets the input resolution
     """
@@ -342,10 +560,19 @@ def ASD(gt, mask, spacing):
     return np.mean(distances)
 
 
-def HD(gt, mask, spacing):
+def HD(gt, mask, spacing=(1, 1, 1)):
     """
     Compute the Haursdoff distance between an input mask and a
     groud truth mask
+
+    Inputs:
+    - gt: 3D np.ndarray, reference image (ground truth)
+    - mask: 3D np.ndarray, input MRI mask
+    - spacing: sets the input resolution (def: (1, 1, 1))
+
+    Output:
+    - (float) Haursdoff distance betwwen Gt and mask
+
 
     - spacing: sets the input resolution
     """
@@ -353,13 +580,20 @@ def HD(gt, mask, spacing):
     return np.max([np.max(distances[0]), np.max(distances[1])])
 
 
-def MHD(gt, mask, spacing):
+def MHD(gt, mask, spacing=(1, 1, 1)):
     """
     Compute the modified Haursdoff distance between an input mask and a
     groud truth mask using the spacing parameter
 
-    - spacing: sets the input resolution
+    Inputs:
+    - gt: 3D np.ndarray, reference image (ground truth)
+    - mask: 3D np.ndarray, input MRI mask
+    - spacing: sets the input resolution (def: (1, 1, 1))
+
+    Output:
+    - (float) Modified Haursdoff distance between mask and gt
     """
+
     distances = mask_distance(gt, mask, spacing)
     return np.max([np.mean(distances[0]), np.mean(distances[1])])
 
@@ -376,6 +610,15 @@ def get_evaluations(gt, mask, spacing=(1, 1, 1)):
     - Volume difference
     - Haursdoff distance (standard and modified)
     - Custom f-score
+
+    Inputs:
+    - gt: 3D np.ndarray, reference image (ground truth)
+    - mask: 3D np.ndarray, input MRI mask
+    - spacing: sets the input resolution (def: (1, 1, 1))
+
+    Output:
+    - (dict) containing each of the evaluated results
+
     """
 
     metrics = {}
