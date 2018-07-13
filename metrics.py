@@ -411,6 +411,31 @@ def PVE(gt, mask, type='absolute'):
 
     return pve
 
+def VSI(gt, mask, type='absolute'):
+    """
+    Compute the volumetrics similarity betweeen an input mask and a ground
+    truth mask
+
+    Inputs:
+    - gt: 3D np.ndarray, reference image (ground truth)
+    - mask: 3D np.ndarray, input MRI mask
+    - type: controls if the error is relative or absolute (def: absolute)
+
+    Output:
+    - (float) relative / absolute difference in volume  between the input
+       and gt mask
+
+    """
+    A = num_voxels(gt)
+    B = num_voxels(mask)
+
+    if type == 'absolute':
+        pve = 1- np.abs(float(B - A) / (A + B))
+    else:
+        pve = float(B - A) / (A + B)
+
+    return pve
+
 
 def PPV_det(gt, mask):
     """
@@ -469,8 +494,8 @@ def f_score(gt, mask):
 
     """
 
-    a = 3.0 * DSC_seg(gt, mask) * TPF_det(gt, mask) * (1 - FPF_seg(gt, mask))
-    b = DSC_seg(gt, mask) + TPF_det(gt, mask) + (1 - FPF_seg(gt, mask))
+    a = 3.0 * DSC_seg(gt, mask) * TPF_det(gt, mask) * (1 - FPF_det(gt, mask))
+    b = DSC_seg(gt, mask) + TPF_det(gt, mask) + (1 - FPF_det(gt, mask))
 
     return a / b if a > 0 else 0
 
@@ -639,6 +664,7 @@ def get_evaluations(gt, mask, spacing=(1, 1, 1)):
     metrics['ppv_seg'] = PPV_seg(gt, mask)
     metrics['ppv_det'] = PPV_det(gt, mask)
     metrics['vd'] = PVE(gt, mask)
+    metrics['vsi'] = VSI(gt, mask)
     metrics['hd'] = HD(gt, mask, spacing)
     metrics['mhd'] = MHD(gt, mask, spacing)
     metrics['f_score'] = f_score(gt, mask)
