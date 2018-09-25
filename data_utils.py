@@ -1,19 +1,53 @@
 # --------------------------------------------------
 #
-# data utils
-# to doc
+# data utils to extract patches from MRI images
 #
-# Sergi Valverde
+# Sergi Valverde 2018
 #
 # --------------------------------------------------
 
 import numpy as np
 from operator import add
 
-# from sklearn.feature_extraction.image import extract_patches_sk
+
+def extract_patches(input_image,
+                    roi=None,
+                    voxel_coords=None,
+                    patch_size=(15, 15, 15),
+                    step_size=(1, 1, 1)):
+    """
+    Extract patches of size patch_size from an input image given as input
+
+    inputs:
+    - input_image:  3D np.array
+    - roi: region of interest to extract samples. input_image > 0 if not set
+    - voxel_coords: Already computed voxel coordenades
+    - patch_size: output patch size
+    - step_size: sampling overlap in x, y and z
+
+    output:
+    - list of sampled patches: 4D array [n, patch_size] eg: (100, 15, 15 ,15)
+    - list of voxel_coordenates
+    """
+
+    # check roi
+    if roi is None:
+        roi = input_image > 0
+
+    # get voxel coordenates taking into account step sampling if those are
+    # not passed as input
+    if voxel_coords is None:
+        voxel_coords = get_voxel_coordenates(input_image,
+                                             roi,
+                                             step_size=step_size)
+
+    # extract patches based on the sampled voxel coordenates
+    out_patches = get_patches(input_image, voxel_coords, patch_size)
+
+    return out_patches, voxel_coords
 
 
-def get_voxel_coordenates(input_data, roi=None, step_size=1):
+def get_voxel_coordenates(input_data, roi, step_size=(1, 1, 1)):
     """
     Get voxel coordenates based on a sampling step size or input mask.
     For each selected voxel, return its (x,y,z) coordinate.
@@ -27,15 +61,11 @@ def get_voxel_coordenates(input_data, roi=None, step_size=1):
     - list of voxel coordenates
     """
 
-    # check roi
-    if roi is None:
-        roi = input_data > 0
-
     # precompute the sampling points based on the input
     sampled_data = np.zeros_like(input_data)
-    for r in range(0, input_data.shape[0], step_size):
-        for c in range(0, input_data.shape[1], step_size):
-            for s in range(0, input_data.shape[2], step_size):
+    for r in range(0, input_data.shape[0], step_size[0]):
+        for c in range(0, input_data.shape[1], step_size[1]):
+            for s in range(0, input_data.shape[2], step_size[2]):
                 sampled_data[r, c, s] = 1
 
     # apply sampled points to roi and extract sample coordenates
@@ -91,6 +121,9 @@ def reconstruct_image(input_data, centers, output_size):
     - input_data: a np.array list with patches
     - centers: center voxel coordenates for each patch
     - output_size: output image size (x,y,z)
+
+    outputs:
+    - reconstructed image
     """
 
     # apply a padding around edges before writing the results
@@ -119,8 +152,11 @@ def reconstruct_image(input_data, centers, output_size):
     out_image = invert_padding(out_image, patch_size)
     freq_count = invert_padding(freq_count, patch_size)
 
-    # return the mean of all the patches
-    return out_image / freq_count
+    # the reconstructed image is the mean of all the patches
+    out_image /= freq_count
+    out_image[np.isnan(out_image)] = 0
+
+    return out_image
 
 
 def apply_padding(input_data, patch_size, mode='constant', value=0):
