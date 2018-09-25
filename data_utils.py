@@ -13,44 +13,36 @@ from operator import add
 # from sklearn.feature_extraction.image import extract_patches_sk
 
 
-def get_voxel_coordenates(input_data, roi, step_size=1):
+def get_voxel_coordenates(input_data, roi=None, step_size=1):
     """
     Get voxel coordenates based on a sampling step size or input mask.
     For each selected voxel, return its (x,y,z) coordinate.
 
-
     inputs:
     - input_data (useful for extracting non-zero voxels)
-    - roi: region of interest to extract samples
+    - roi: region of interest to extract samples. input_data > 0 if not set
     - step_size: sampling overlap in x, y and z
+
+    output:
+    - list of voxel coordenates
     """
 
-    voxel_coords = []
-    roi_mask = roi > 0
-    x, y, z = np.where(roi_mask)
+    # check roi
+    if roi is None:
+        roi = input_data > 0
 
-    # As a requirement, I want to sample the next patch available when
-    # the current_patch + step_size does not exist.
-    c_x = - np.inf
-    for x_ in x:
-        # for each row, only evaluate the next row after step_size
-        if (c_x != x_) and (x_ >= c_x + step_size):
-            c_x = x_
-            c_y = - np.inf
-            # for each column, only evaluate the next slice after step_size
-            for y_ in y:
-                if (c_y != y_) and (y_ >= c_y + step_size):
-                    c_y = y_
-                    c_z = - np.inf
-                    # for each slice, only evaluate if exists the
-                    # voxel in the roi mask after step_size
-                    for z_ in z:
-                        if (c_z != z_) and (z_ >= c_z + step_size):
-                            c_z = z_
-                            if roi_mask[x_, y_, z_]:
-                                voxel_coords.append((x_, y_, z_))
+    # precompute the sampling points based on the input
+    sampled_data = np.zeros_like(input_data)
+    for r in range(0, input_data.shape[0], step_size):
+        for c in range(0, input_data.shape[1], step_size):
+            for s in range(0, input_data.shape[2], step_size):
+                sampled_data[r, c, s] = 1
 
-    return voxel_coords
+    # apply sampled points to roi and extract sample coordenates
+    [x, y, z] = np.where(input_data * roi * sampled_data)
+
+    # return as a list of tuples
+    return [(x_, y_, z_) for x_, y_, z_ in zip(x, y, z)]
 
 
 def get_patches(input_data, centers, patch_size=(15, 15, 15)):
