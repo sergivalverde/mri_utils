@@ -10,7 +10,7 @@
 import numpy as np
 from scipy.ndimage import label
 from scipy.ndimage import labeled_comprehension as lc
-
+import SimpleITK as sitk
 
 def filter_regions_volume(mask, threshold=0.5, min_volume=10):
     """
@@ -42,3 +42,39 @@ def filter_regions_volume(mask, threshold=0.5, min_volume=10):
                             current_voxels[:, 2]] = 1
 
     return output_mask
+
+
+def histogram_matching(mov_scan, ref_scan,
+                       histogram_levels=2048,
+                       match_points=100,
+                       set_th_mean=True):
+    """
+    Histogram matching following the method developed on
+    Nyul et al 2001 (ITK implementation)
+
+    inputs:
+    - mov_scan: np.array containing the image to normalize
+    - ref_scan np.array containing the reference image
+    - histogram levels
+    - number of matched points
+    - Threshold Mean setting
+
+    outputs:
+    - histogram matched image
+    """
+
+    # convert np arrays into itk image objects
+    ref = sitk.GetImageFromArray(ref_scan)
+    mov = sitk.GetImageFromArray(mov_scan)
+
+    # perform histogram matching
+    caster = sitk.CastImageFilter()
+    caster.SetOutputPixelType(ref.GetPixelID())
+
+    matcher = sitk.HistogramMatchingImageFilter()
+    matcher.SetNumberOfHistogramLevels(histogram_levels)
+    matcher.SetNumberOfMatchPoints(match_points)
+    matcher.SetThresholdAtMeanIntensity(set_th_mean)
+    matched_vol = matcher.Execute(mov, ref)
+
+    return sitk.GetArrayFromImage(matched_vol)
