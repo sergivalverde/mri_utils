@@ -64,8 +64,8 @@ def histogram_matching(mov_scan, ref_scan,
     """
 
     # convert np arrays into itk image objects
-    ref = sitk.GetImageFromArray(ref_scan)
-    mov = sitk.GetImageFromArray(mov_scan)
+    ref = sitk.GetImageFromArray(ref_scan.astype('float32'))
+    mov = sitk.GetImageFromArray(mov_scan.astype('float32'))
 
     # perform histogram matching
     caster = sitk.CastImageFilter()

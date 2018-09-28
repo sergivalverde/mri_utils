@@ -623,6 +623,63 @@ def MHD(gt, mask, spacing=(1, 1, 1)):
     return np.max([np.mean(distances[0]), np.mean(distances[1])])
 
 
+def mad(gt, mask):
+    """
+    Compute the median absolute error between two input masks
+
+    Inputs:
+    - gt: 3D np.ndarray, reference image (ground truth)
+    - mask: 3D np.ndarray, input MRI mask
+
+    Output:
+    - (float) median absolute error between mask and gt
+    """
+
+    intersect = np.multiply(gt != 0, mask != 0)
+    max_gt = gt[intersect].max()
+    max_mask = mask[intersect].max()
+    return np.median(
+        np.abs(gt[intersect] / max_gt - mask[intersect] / max_mask))
+
+
+def ssim(gt, mask):
+    """
+    Compute the structural similarity index between two input masks
+
+    Wang, Z., Bovik, A. C., Sheikh, H. R., & Simoncelli, E. P. (2004). Image
+    quality assessment: from error visibility to structural similarity. IEEE
+    transactions on image processing, 13, 600-612.
+
+    Inputs:
+    - gt: 3D np.ndarray, reference image (ground truth)
+    - mask: 3D np.ndarray, input MRI mask
+
+    Output:
+    - (float) ssim coefficient between the two masks
+    """
+
+    A = gt / gt.max()
+    B = mask / mask.max()
+    intersect = np.multiply(A != 0, B != 0)
+    ua = A[intersect].mean()
+    ub = B[intersect].mean()
+    oa = A[intersect].std() ** 2
+    ob = B[intersect].std() ** 2
+    oab = np.sum(
+        np.multiply(
+            A[intersect] - ua, B[intersect] - ub)) / (np.sum(intersect) - 1)
+
+    # coeffients
+    k1 = 0.01
+    k2 = 0.03
+    L = 1
+    c1 = (k1 * L) ** 2
+    c2 = (k2 * L) ** 2
+    num = (2*ua*ub + c1) * (2*oab + c2)
+    den = (ua**2 + ub**2 + c1) * (oa + ob + c2)
+    return num / den
+
+
 def get_evaluations(gt, mask, spacing=(1, 1, 1)):
     """
     Helper function to compute all the evaluation metrics:
@@ -668,5 +725,7 @@ def get_evaluations(gt, mask, spacing=(1, 1, 1)):
     metrics['hd'] = HD(gt, mask, spacing)
     metrics['mhd'] = MHD(gt, mask, spacing)
     metrics['f_score'] = f_score(gt, mask)
+    metrics['mad'] = mad(gt, mask)
+    metrics['ssim'] = ssim(gt, mask)
 
     return metrics
