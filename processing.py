@@ -12,6 +12,7 @@ from scipy.ndimage import label
 from scipy.ndimage import labeled_comprehension as lc
 import SimpleITK as sitk
 
+
 def filter_regions_volume(mask, threshold=0.5, min_volume=10):
     """
     Remove regions with region volume < min_volume. Optionally, an initial
