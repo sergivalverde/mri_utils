@@ -46,9 +46,8 @@ def process_batch(data_batch, process='fsl'):
     """
     COMMAND = '~/bin/ROBEX/runROBEX.sh {} {}'
     for b in data_batch:
-        print('--> running scan ', b)
-        os.system(COMMAND.format(b[0], b[1]))
-
+        print('--> running scan', b)
+        os.system(COMMAND.format(b, b.replace('.nii.gz', '_brain.nii.gz')))
 
 def main(args):
     """
@@ -59,21 +58,18 @@ def main(args):
     input_scan = args.input_name
     workers = args.workers
     input_files = extract_scans(input_folder, input_scan)
-    output_files = [x.replace('nii.gz', '_brain.nii.gz') for x in input_files]
-    # select batches of data
-    batches = [[input_files[c * workers:c * workers + workers],
-                output_files[c * workers:c * workers + workers]]
-               for c, r in enumerate(range(0, len(input_files), workers))]
+    batches = [input_files[c * workers:c * workers + workers]
+               for c, r in enumerate(range(0, len(input_files), len(input_files) // workers))]
 
     # process data in parallel
-    p = Pool(len(batches))
+    p = Pool(workers)
     p.map(process_batch, batches)
 
 
 if __name__ == '__main__':
 
     # load options from input
-    parser = argparse.ArgumentParser(description="Using fsl5-fast in parallel")
+    parser = argparse.ArgumentParser(description="Using ROBEx in parallel")
     parser.add_argument('--workers',
                         type=int,
                         default=10,
