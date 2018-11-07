@@ -45,6 +45,7 @@ def process_batch(data_batch, process='fsl'):
     Output images are saved with the same input name.
     """
     COMMAND = 'fsl5.0-fast -S 1 -n 3 -t 1 {}'
+
     for b in data_batch:
         print('--> running scan ', b)
         os.system(COMMAND.format(b))
@@ -62,15 +63,13 @@ def main(args):
 
     # select batches of data
     batches = [input_files[c * workers:c * workers + workers]
-               for c, r in enumerate(range(0, len(input_files), workers))]
+               for c, r in enumerate(range(0, len(input_files), len(input_files) // workers))]
 
     # process data in parallel
-    p = Pool(len(batches))
+    p = Pool(workers)
     p.map(process_batch, batches)
 
-
 if __name__ == '__main__':
-
     # load options from input
     parser = argparse.ArgumentParser(description="Using fsl5-fast in parallel")
     parser.add_argument('--workers',
