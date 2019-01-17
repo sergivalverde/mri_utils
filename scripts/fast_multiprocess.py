@@ -44,7 +44,7 @@ def process_batch(data_batch, process='fsl'):
     Process the current batch of image scans.
     Output images are saved with the same input name.
     """
-    COMMAND = 'fsl5.0-fast -S 1 -n 3 -t 1 {}'
+    COMMAND = 'fsl5.0-fast -S 1 -n 5 -t 1 {}'
 
     for b in data_batch:
         print('--> running scan ', b)
@@ -59,15 +59,18 @@ def main(args):
     input_folder = args.data_folder
     input_scan = args.input_name
     workers = args.workers
+    classes = args.classes
     input_files = extract_scans(input_folder, input_scan)
 
     # select batches of data
-    batches = [input_files[c * workers:c * workers + workers]
-               for c, r in enumerate(range(0, len(input_files), len(input_files) // workers))]
+    batch_size = round(len(input_files) / workers)
+    batches = [input_files[b * batch_size:(b*batch_size) + batch_size] for b in range(workers)]
 
     # process data in parallel
     p = Pool(workers)
     p.map(process_batch, batches)
+
+    return batches
 
 if __name__ == '__main__':
     # load options from input
@@ -76,6 +79,10 @@ if __name__ == '__main__':
                         type=int,
                         default=10,
                         help='Number of workers to use in parallel')
+    parser.add_argument('--classes',
+                        type=int,
+                        default=3,
+                        help='Number of segmentation classes')
     parser.add_argument('--data_folder',
                         type=str,
                         help='Data folder')
@@ -88,4 +95,4 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    main(args)
+    batches = main(args)
