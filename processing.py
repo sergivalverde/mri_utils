@@ -106,7 +106,10 @@ def n4_normalization(input_scan, max_iters=400, levels=1):
     return sitk.GetArrayFromImage(output)
 
 
-def normalize_data(im, norm_type='standard', brainmask=None, datatype=np.float32):
+def normalize_data(im,
+                   norm_type='standard',
+                   brainmask=None,
+                   datatype=np.float32):
     """
     Zero mean normalization
 

@@ -725,7 +725,7 @@ def get_evaluations(gt, mask, spacing=(1, 1, 1)):
     metrics['hd'] = HD(gt, mask, spacing)
     metrics['mhd'] = MHD(gt, mask, spacing)
     metrics['f_score'] = f_score(gt, mask)
-    metrics['mad'] = mad(gt, mask)
-    metrics['ssim'] = ssim(gt, mask)
+    # metrics['mad'] = mad(gt, mask)
+    # metrics['ssim'] = ssim(gt, mask)
 
     return metrics

@@ -1,4 +1,4 @@
-#!/usr/bin/python3.6
+#!/usr/bin/python3
 
 # --------------------------------------------------
 # Script for running parallel processes
@@ -38,42 +38,89 @@ def extract_scans(input_folder, input_vol):
 
     return sorted(selected_files)
 
+def check_scans(input_files, pattern='_pve_0.nii.gz'):
+    """
+    Check if a previous output result exists using a pattern as
+    control
+    """
 
-def process_batch(data_batch, process='fsl'):
+    output_files = []
+    for i in input_files:
+        path_, file_ = os.path.split(i)
+        file_ = file_.split('.')[0]
+        if os.path.exists(os.path.join(path_, file_ + pattern)) is False:
+            output_files.append(i)
+
+    return  output_files
+
+def run_batch(options):
     """
     Process the current batch of image scans.
-    Output images are saved with the same input name.
+    Options:
+    - out_name: set name for output
+    - classes: number of segmentation classes
+    - modality: choose input modality: t1=1, t2=2, pd=3
+    - achive: save all results in a new folder = out_name
     """
-    COMMAND = 'fsl5.0-fast -S 1 -n 5 -t 1 {}'
 
-    for b in data_batch:
+    COMMAND = 'fsl5.0-fast -n {} -t {} -o {} {}'
+
+    for b in options['data']:
         print('--> running scan ', b)
-        os.system(COMMAND.format(b))
-
+        path_, _ = os.path.split(b)
+        exp_folder = os.path.join(path_, options['out_name'])
+        os.system(COMMAND.format(options['classes'],
+                                 options['modality'],
+                                 exp_folder,
+                                 b))
+        if options['archive']:
+            if os.path.exists(exp_folder) is False:
+                os.mkdir(exp_folder)
+            os.system('mv ' + path_ + '/'
+                      + options['out_name']
+                      + '* ' + exp_folder + '/'
+                      + ' 2>/dev/null')
 
 def main(args):
     """
     main script
     """
 
-    input_folder = args.data_folder
-    input_scan = args.input_name
-    workers = args.workers
-    classes = args.classes
-    input_files = extract_scans(input_folder, input_scan)
+    options = {}
+    options['classes'] = args.classes
+    options['modality'] = args.modality
+    options['out_name'] = args.output_name
+    options['archive'] = args.archive
+    input_files = extract_scans(args.data_folder, args.input_name)
 
-    # select batches of data
-    batch_size = round(len(input_files) / workers)
-    batches = [input_files[b * batch_size:(b*batch_size) + batch_size] for b in range(workers)]
+    if args.check:
+        input_files = check_scans(input_files)
+
+    workers = args.workers
+    if workers > len(input_files):
+        workers = len(input_files)
+
+    # distribute data across workers
+    batches = [[] for w in range(workers)]
+    for i, f in enumerate(input_files):
+        print('adding ', f , 'to worker', i % workers)
+        batches[i % workers].append(f)
+
+    # build working batches with method options + data to process
+    working_batches = []
+    for b in range(workers):
+        c_options = options.copy()
+        c_options.setdefault('data', batches[b])
+        working_batches.append(c_options)
 
     # process data in parallel
     p = Pool(workers)
-    p.map(process_batch, batches)
+    p.map(run_batch, working_batches)
 
     return batches
 
 if __name__ == '__main__':
-    # load options from input
+
     parser = argparse.ArgumentParser(description="Using fsl5-fast in parallel")
     parser.add_argument('--workers',
                         type=int,
@@ -83,16 +130,25 @@ if __name__ == '__main__':
                         type=int,
                         default=3,
                         help='Number of segmentation classes')
+    parser.add_argument('--modality',
+                        type=int,
+                        default=1,
+                        help='Input modality: T1=1, T2=2, PD=3')
     parser.add_argument('--data_folder',
                         type=str,
-                        help='Data folder')
+                        help='Input data folder')
     parser.add_argument('--output_name',
                         type=str,
-                        help='Output volume name')
+                        help='Result name. Combined with --archive also sets an output folder where results are stored')
     parser.add_argument('--input_name',
                         type=str,
                         help='Input volume name')
+    parser.add_argument('--check',
+                        action='store_true',
+                        help='check if a previous segmentation exists for each image')
+    parser.add_argument('--archive',
+                        action='store_true',
+                        help='archive results in a ouput folder = output_name')
 
     args = parser.parse_args()
-
-    batches = main(args)
+    batches_ = main(args)
