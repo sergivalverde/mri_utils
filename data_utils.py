@@ -47,7 +47,10 @@ def extract_patches(input_image,
     return out_patches, voxel_coords
 
 
-def get_voxel_coordenates(input_data, roi, step_size=(1, 1, 1)):
+def get_voxel_coordenates(input_data,
+                          roi,
+                          random_pad=(0, 0, 0),
+                          step_size=(1, 1, 1)):
     """
     Get voxel coordenates based on a sampling step size or input mask.
     For each selected voxel, return its (x,y,z) coordinate.
@@ -56,16 +59,22 @@ def get_voxel_coordenates(input_data, roi, step_size=(1, 1, 1)):
     - input_data (useful for extracting non-zero voxels)
     - roi: region of interest to extract samples. input_data > 0 if not set
     - step_size: sampling overlap in x, y and z
+    - random_pad: initial random padding applied to indexes
 
     output:
     - list of voxel coordenates
     """
 
+    # compute initial padding
+    r_pad = np.random.randint(random_pad[0]+1) if random_pad[0] > 0 else 0
+    c_pad = np.random.randint(random_pad[1]+1) if random_pad[1] > 0 else 0
+    s_pad = np.random.randint(random_pad[2]+1) if random_pad[2] > 0 else 0
+
     # precompute the sampling points based on the input
     sampled_data = np.zeros_like(input_data)
-    for r in range(0, input_data.shape[0], step_size[0]):
-        for c in range(0, input_data.shape[1], step_size[1]):
-            for s in range(0, input_data.shape[2], step_size[2]):
+    for r in range(r_pad, input_data.shape[0], step_size[0]):
+        for c in range(c_pad, input_data.shape[1], step_size[1]):
+            for s in range(s_pad, input_data.shape[2], step_size[2]):
                 sampled_data[r, c, s] = 1
 
     # apply sampled points to roi and extract sample coordenates
