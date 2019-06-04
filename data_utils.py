@@ -78,7 +78,8 @@ def get_voxel_coordenates(input_data,
                 sampled_data[r, c, s] = 1
 
     # apply sampled points to roi and extract sample coordenates
-    [x, y, z] = np.where(input_data * roi * sampled_data)
+    # [x, y, z] = np.where(input_data * roi * sampled_data)
+    [x, y, z] = np.where(roi * sampled_data)
 
     # return as a list of tuples
     return [(x_, y_, z_) for x_, y_, z_ in zip(x, y, z)]

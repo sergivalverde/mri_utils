@@ -13,7 +13,7 @@ from scipy.ndimage import labeled_comprehension as lc
 import SimpleITK as sitk
 
 
-def filter_regions_volume(mask, threshold=0.5, min_volume=10):
+def filter_regions_volume(input_mask, threshold=0.5, min_volume=10):
     """
     Remove regions with region volume < min_volume. Optionally, an initial
     threshold is applied to binarize probabilities before filtering.
@@ -28,21 +28,28 @@ def filter_regions_volume(mask, threshold=0.5, min_volume=10):
       filtered
     """
 
-    mask = mask >= threshold
+    mask = input_mask >= threshold
     regions, num_regions = label(mask)
     labels = np.arange(1, num_regions+1)
     output_mask = np.zeros_like(mask)
+    prob_mask = np.zeros(mask.shape)
 
     if num_regions > 0:
         region_vol = lc(mask, regions, labels, np.sum, int, 0)
         for l in labels:
             if region_vol[l-1] > min_volume:
                 current_voxels = np.stack(np.where(regions == l), axis=1)
+                int_mean = np.median(input_mask[current_voxels[:, 0],
+                                              current_voxels[:, 1],
+                                              current_voxels[:, 2]])
                 output_mask[current_voxels[:, 0],
                             current_voxels[:, 1],
                             current_voxels[:, 2]] = 1
+                prob_mask[current_voxels[:, 0],
+                          current_voxels[:, 1],
+                          current_voxels[:, 2]] = int_mean
 
-    return output_mask
+    return output_mask, prob_mask
 
 
 def histogram_matching(mov_scan, ref_scan,
@@ -121,6 +128,7 @@ def normalize_data(im,
     - normalized image
     """
     mask = np.copy(im > 0 if brainmask is None else brainmask)
+
     if norm_type == 'standard':
         im = im.astype(dtype=datatype) - im[np.nonzero(im)].mean()
         im = im / im[np.nonzero(im)].std()
@@ -135,5 +143,5 @@ def normalize_data(im,
             im = (im.astype(dtype=datatype) - min_int) / max_int
 
     # do not apply normalization to non-brain parts
-    im[mask==0] = 0
+    # im[mask==0] = 0
     return im
