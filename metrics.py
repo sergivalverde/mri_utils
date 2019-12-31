@@ -679,6 +679,20 @@ def ssim(gt, mask):
     den = (ua**2 + ub**2 + c1) * (oa + ob + c2)
     return num / den
 
+def lesion_error(gt, mask):
+    """
+    Compute the lesion error according to the number of false positive
+    and false negatives
+
+    - gt: 3D np.ndarray, reference image (ground truth)
+    - mask: 3D np.ndarray, input MRI mask
+
+    Output:
+    - (int) Number of false positive and false negatives added
+    """
+
+    return false_negative_det(gt, mask) + false_positive_det(gt, mask)
+
 
 def get_evaluations(gt, mask, spacing=(1, 1, 1)):
     """
@@ -725,6 +739,7 @@ def get_evaluations(gt, mask, spacing=(1, 1, 1)):
     metrics['hd'] = HD(gt, mask, spacing)
     metrics['mhd'] = MHD(gt, mask, spacing)
     metrics['f_score'] = f_score(gt, mask)
+    metrics['lesion_error'] = lesion_error(gt, mask)
     # metrics['mad'] = mad(gt, mask)
     # metrics['ssim'] = ssim(gt, mask)
 
