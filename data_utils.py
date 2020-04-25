@@ -8,6 +8,7 @@
 
 import numpy as np
 from operator import add
+np.seterr(divide='ignore', invalid='ignore')
 
 
 def extract_patches(input_image,
@@ -118,7 +119,7 @@ def get_patches(input_data, centers, patch_size=(15, 15, 15)):
                   for center in new_centers]
 
         # extact patches
-        patches = [padded_image[idx] for idx in slices]
+        patches = [padded_image[tuple(idx)] for idx in slices]
 
     return np.array(patches)
 
@@ -155,8 +156,8 @@ def reconstruct_image(input_data, centers, output_size):
     freq_count = np.zeros_like(out_image)
 
     for patch, slide in zip(input_data, slices):
-        out_image[slide] += patch
-        freq_count[slide] += np.ones(patch_size)
+        out_image[tuple(slide)] += patch
+        freq_count[tuple(slide)] += np.ones(patch_size)
 
     # invert the padding applied for patch writing
     out_image = invert_padding(out_image, patch_size)
