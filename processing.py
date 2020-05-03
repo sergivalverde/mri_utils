@@ -12,6 +12,7 @@ import nibabel as nib
 from scipy.ndimage import label
 from scipy.ndimage import labeled_comprehension as lc
 from scipy.interpolate import interp1d
+from sklearn.mixture import GaussianMixture
 import SimpleITK as sitk
 
 
@@ -297,3 +298,42 @@ def do_hist_normalization(input_image,
 
     # apply transformation to input image
     return f(input_image)
+
+
+def gmm_clustering(img_data, n_classes=3, max_iter=50, brainmask=None):
+    """
+    GMM clustering
+
+    inputs:
+    - img_data: np.array containing the image to process
+    - n_classes: number of classes
+    - max_iter: number of iterations to perform
+    - brainmask: input brainmask
+
+    outputs:
+    - res_array: np.array n_classes x img_data with output probabilities
+    - labels: np.array with resulting class labels
+    """
+    if brainmask is None:
+        brainmask = img_data > 0
+
+    brain = img_data
+    brain = np.expand_dims(img_data[brainmask].flatten(), 1)
+    gmm = GaussianMixture(n_classes, max_iter=max_iter)
+    gmm.fit(brain)
+    classes_ = np.argsort(gmm.means_.T.squeeze())
+
+    # predict probabilities
+    res = gmm.predict_proba(brain)
+    res_array = []
+    for c in classes_:
+        prob_class = np.zeros_like(img_data)
+        prob_class[brainmask > 0] = res[:, c]
+        res_array.append(prob_class)
+
+    # predict labels
+    labels = np.array(res_array)
+    labels = np.argmax(res_array, axis=0)
+    labels[brainmask > 0] += 1
+
+    return res_array, labels
